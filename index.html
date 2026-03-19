@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../Lab2-TheoryOfInformation/style.css">
+    <title>LFSR Шифрование</title>
+</head>
+<body>
+
+<h1>LFSR Шифрование (24 бита)</h1>
+
+<div class="block">
+    <label>Выберите файл:</label><br>
+    <input type="file" id="fileInput">
+</div>
+
+<div class="block">
+    <label>Начальное состояние регистра (24 бита):</label><br>
+    <input type="text" id="seed" placeholder="например: 101010..." maxlength="50">
+</div>
+
+<div class="block">
+    <button onclick="processFile(true)">Зашифровать</button>
+    <button onclick="processFile(false)">Дешифровать</button>
+</div>
+
+<div class="block">
+    <label>Исходные данные (биты):</label>
+    <textarea id="inputBits"></textarea>
+</div>
+
+<div class="block">
+    <label>Ключ (LFSR):</label>
+    <textarea id="keyBits"></textarea>
+</div>
+
+<div class="block">
+    <label>Результат (биты):</label>
+    <textarea id="outputBits"></textarea>
+</div>
+
+<script src="index.js"></script>
+
+
+</body>
+</html>
