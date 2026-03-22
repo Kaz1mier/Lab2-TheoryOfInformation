@@ -1,7 +1,65 @@
-
 function cleanBinary(str) {
     return str.replace(/[^01]/g, '');
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    const seedInput = document.getElementById("seed");
+    const counter = document.getElementById("seedCount");
+    const fileInput = document.getElementById('fileInput');
+    const encryptBtn = document.getElementById('encryptBtn');
+    const decryptBtn = document.getElementById('decryptBtn');
+    const inputBitsField = document.getElementById('inputBits');
+    const keyBitsField = document.getElementById('keyBits');
+    const outputBitsField = document.getElementById('outputBits');
+
+
+    function clearBitFields() {
+        if (inputBitsField) inputBitsField.value = '';
+        if (keyBitsField) keyBitsField.value = '';
+        if (outputBitsField) outputBitsField.value = '';
+    }
+
+    function updateButtonsState() {
+        const seed = cleanBinary(seedInput.value);
+        const isSeedValid = seed.length === 24;
+        const isFileSelected = fileInput.files.length > 0;
+
+        if (encryptBtn) {
+            encryptBtn.disabled = !(isSeedValid && isFileSelected);
+        }
+        if (decryptBtn) {
+            decryptBtn.disabled = !(isSeedValid && isFileSelected);
+        }
+    }
+
+    seedInput.addEventListener("input", () => {
+        let value = seedInput.value.replace(/[^01]/g, '');
+
+        if (value.length > 24) {
+            value = value.slice(0, 24);
+        }
+        if (value.length < 24) {
+            counter.style.color = "red";
+        } else {
+            counter.style.color = "lightgreen";
+        }
+        seedInput.value = value;
+        counter.textContent = `${value.length} / 24`;
+
+        clearBitFields();
+
+        updateButtonsState();
+    });
+
+    if (fileInput) {
+        fileInput.addEventListener('change', () => {
+            clearBitFields();
+            updateButtonsState();
+        });
+    }
+
+    updateButtonsState();
+});
 
 function generateLFSR(seed, length) {
     let reg = seed.split('').map(Number);
@@ -66,28 +124,62 @@ function processFile(isEncrypt) {
 
     let reader = new FileReader();
 
-    reader.onload = function(e) {
-        let bytes = new Uint8Array(e.target.result);
+    reader.onload = async function(e) {
+        try {
+            let bytes = new Uint8Array(e.target.result);
+            let inputBits = bytesToBits(bytes);
+            let key = generateLFSR(seed, inputBits.length);
+            let outputBits = xorBits(inputBits, key);
 
-        let inputBits = bytesToBits(bytes);
+            document.getElementById('inputBits').value = inputBits.join('');
+            document.getElementById('keyBits').value = key.join('');
+            document.getElementById('outputBits').value = outputBits.join('');
 
-        let key = generateLFSR(seed, inputBits.length);
+            let outBytes = bitsToBytes(outputBits);
+            let blob = new Blob([outBytes]);
+            let originalFileName = fileInput.files[0].name;
+            let prefix = isEncrypt ? "enc_" : "dec_";
+            let suggestedFileName = prefix + originalFileName;
 
-        let outputBits = xorBits(inputBits, key);
+            let fileExtension = originalFileName.includes('.') ?
+                originalFileName.split('.').pop() : '';
 
-        document.getElementById('inputBits').value = inputBits.join('');
-        document.getElementById('keyBits').value = key.join('');
-        document.getElementById('outputBits').value = outputBits.join('');
+            if ('showSaveFilePicker' in window) {
+                try {
+                    const opts = {
+                        suggestedName: suggestedFileName,
+                        types: [{
+                            description: 'All Files',
+                            accept: {
+                                'application/octet-stream': ['.bin', '.dat', fileExtension ? `.${fileExtension}` : ''].filter(ext => ext)
+                            }
+                        }]
+                    };
 
-        let outBytes = bitsToBytes(outputBits);
-
-        let blob = new Blob([outBytes]);
-        let url = URL.createObjectURL(blob);
-
-        let a = document.createElement('a');
-        a.href = url;
-        a.download = isEncrypt ? "encrypted.bin" : "decrypted.bin";
-        a.click();
+                    const fileHandle = await window.showSaveFilePicker(opts);
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.error('Ошибка сохранения:', err);
+                        alert(`Ошибка сохранения: ${err.message || 'Неизвестная ошибка'}`);
+                    }
+                }
+            } else {
+                let url = URL.createObjectURL(blob);
+                let a = document.createElement('a');
+                a.href = url;
+                a.download = suggestedFileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            }
+        } catch (error) {
+            console.error('Общая ошибка:', error);
+            alert(`Ошибка обработки: ${error.message}`);
+        }
     };
 
     reader.readAsArrayBuffer(fileInput.files[0]);
