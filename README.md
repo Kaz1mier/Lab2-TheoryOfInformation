@@ -4,7 +4,7 @@
 ---
 
 ## 🚀 Открыть приложение
-[Открыть приложение](https://Kaz1mier.github.io/Lab2-TheoryOfInformation/)
+[Открыть приложение](https://kaz1mier.github.io/Lab2-TheoryOfInformation/)
 
 ---
 
